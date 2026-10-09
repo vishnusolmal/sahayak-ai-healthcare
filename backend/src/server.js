@@ -48,6 +48,12 @@ app.use('/api/chat', chatRouter);
 // Teleconsultation Appointments Route
 app.use('/api/appointments', appointmentsRouter);
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[SahayakAI] Backend server running at http://localhost:${PORT}`);
-});
+// Only start HTTP server when running locally (not on Vercel serverless)
+if (!process.env.VERCEL) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[SahayakAI] Backend server running at http://localhost:${PORT}`);
+  });
+}
+
+// Export app for Vercel serverless handler
+export default app;

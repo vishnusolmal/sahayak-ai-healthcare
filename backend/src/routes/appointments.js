@@ -8,8 +8,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DATA_FILE = path.join(__dirname, '../data/appointments.json');
 
-// Helper to read appointments (Async)
+// Vercel serverless functions have a read-only filesystem.
+// Use in-memory store when VERCEL env var is set; use JSON file locally.
+const IS_SERVERLESS = !!process.env.VERCEL;
+let memoryStore = []; // in-memory appointments for serverless environments
+
+// Helper to read appointments
 async function readAppointments() {
+  if (IS_SERVERLESS) return [...memoryStore];
   try {
     if (!fs.existsSync(DATA_FILE)) {
       await fs.promises.mkdir(path.dirname(DATA_FILE), { recursive: true });
@@ -24,8 +30,9 @@ async function readAppointments() {
   }
 }
 
-// Helper to write appointments (Async)
+// Helper to write appointments
 async function writeAppointments(data) {
+  if (IS_SERVERLESS) { memoryStore = data; return true; }
   try {
     await fs.promises.mkdir(path.dirname(DATA_FILE), { recursive: true });
     await fs.promises.writeFile(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
