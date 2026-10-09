@@ -1,0 +1,33 @@
+services:
+  # ---------- BACKEND (Express API) ----------
+  - type: web
+    name: sahayak-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      - key: GEMINI_API_KEY
+        sync: false   # set this manually in Render dashboard
+
+  # ---------- FRONTEND (React/Vite static site) ----------
+  - type: web
+    name: sahayak-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: sahayak-backend
+          property: host
