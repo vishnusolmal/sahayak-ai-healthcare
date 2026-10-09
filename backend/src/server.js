@@ -19,7 +19,7 @@ const PORT = process.env.PORT || 5000;
 // Security Middlewares
 app.use(helmet()); // Sets HTTP security headers
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'], // Restrict to frontend origin
+  origin: process.env.NODE_ENV === 'production' ? '*' : ['http://localhost:5173', 'http://127.0.0.1:5173'], // Allow all in production, restrict in dev
   methods: ['GET', 'POST'],
 }));
 app.use(express.json({ limit: '5mb' })); // Limit body size to prevent payload DOS
@@ -48,6 +48,6 @@ app.use('/api/chat', chatRouter);
 // Teleconsultation Appointments Route
 app.use('/api/appointments', appointmentsRouter);
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`[SahayakAI] Backend server running at http://localhost:${PORT}`);
 });

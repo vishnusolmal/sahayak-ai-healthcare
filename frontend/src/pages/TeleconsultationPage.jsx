@@ -37,7 +37,8 @@ export default function TeleconsultationPage({ setCurrentView, lang, t }) {
 
   // Fetch past bookings on load
   useEffect(() => {
-    fetch('/api/appointments')
+    const apiUrl = import.meta.env.VITE_API_URL || '';
+    fetch(`${apiUrl}/api/appointments`)
       .then((res) => res.json())
       .then((data) => {
         if (data && data.appointments) {
@@ -93,7 +94,8 @@ export default function TeleconsultationPage({ setCurrentView, lang, t }) {
     };
 
     try {
-      const response = await fetch('/api/appointments', {
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const response = await fetch(`${apiUrl}/api/appointments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(appointmentPayload)
