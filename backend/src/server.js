@@ -56,7 +56,48 @@ app.use('/api/chat', chatRouter);
 // Teleconsultation Appointments Route
 app.use('/api/appointments', appointmentsRouter);
 
-// Only start HTTP server when running locally (not on Vercel serverless)
+// Serve frontend static build files (for single-service deployment on Render/Railway/Heroku/Docker)
+const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');
+app.use(express.static(frontendDistPath));
+
+// SPA fallback: Any non-API route serves index.html if available, or a friendly status page
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+  const indexPath = path.join(frontendDistPath, 'index.html');
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      res.status(200).send(`
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>SahayakAI Backend API</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 60px 20px; background: #f8fafc; color: #0f172a; }
+              .card { max-width: 520px; margin: 0 auto; background: white; padding: 36px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+              h1 { color: #16a34a; margin-bottom: 12px; font-size: 24px; }
+              p { color: #64748b; line-height: 1.6; }
+              .btn { display: inline-block; margin-top: 20px; padding: 10px 22px; background: #16a34a; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; }
+              .btn:hover { background: #15803d; }
+            </style>
+          </head>
+          <body>
+            <div class="card">
+              <h1>🩺 SahayakAI Backend API is Live</h1>
+              <p>The Express backend is operational and ready to receive requests.</p>
+              <a class="btn" href="/api/health">Check API Health (/api/health)</a>
+            </div>
+          </body>
+        </html>
+      `);
+    }
+  });
+});
+
+// Only start HTTP server when running locally/standard Node (not on Vercel serverless)
 if (!process.env.VERCEL) {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`[SahayakAI] Backend server running at http://localhost:${PORT}`);
@@ -65,3 +106,4 @@ if (!process.env.VERCEL) {
 
 // Export app for Vercel serverless handler
 export default app;
+
