@@ -1,11 +1,32 @@
 import express from 'express';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 
 const router = express.Router();
 
 // Rich symptom-specific clinical triage knowledge base
 function getClinicalFallback(symptomText, lang = 'en') {
   const query = (symptomText || '').toLowerCase().trim();
+
+  // Casual greeting check
+  if (
+    query === 'hi' || query === 'hello' || query === 'hey' || query === 'namaste' ||
+    query.includes('how are you') || query === 'नमस्ते'
+  ) {
+    if (lang === 'hi') {
+      return {
+        guidance: "नमस्ते! मैं आपका सहायक AI स्वास्थ्य साथी हूँ। कृपया मुझे अपने लक्षण बताएं।",
+        urgency: "Low",
+        suggestedAction: "कृपया अपनी स्वास्थ्य समस्या बताएं",
+        disclaimer: "यह AI स्वास्थ्य सलाह है।"
+      };
+    }
+    return {
+      guidance: "Hi, how are you. I am Sahayak AI, your health companion. Please tell me your symptoms.",
+      urgency: "Low",
+      suggestedAction: "Please describe your health issue",
+      disclaimer: "This is an AI health assistant."
+    };
+  }
 
   // 1. CHEST PAIN / BREATHING / CARDIAC EMERGENCY (HIGH URGENCY)
   if (
@@ -282,20 +303,20 @@ function getClinicalFallback(symptomText, lang = 'en') {
     };
   }
 
-  // 14. DEFAULT CONTEXTUAL ADVICE
+  // 14. DEFAULT CONTEXTUAL ADVICE & GIBBERISH FALLBACK
   if (lang === 'hi') {
     return {
-      guidance: `आपके द्वारा बताए गए लक्षणों ("${symptomText.slice(0, 40)}") के लिए पर्याप्त आराम करें, हल्का सुपाच्य भोजन लें और स्वच्छ पानी पिएं। अपने शरीर के तापमान और लक्षणों पर नज़र रखें। यदि 24 से 48 घंटे में सुधार न हो, तो नज़दीकी प्राथमिक स्वास्थ्य केंद्र पर जाकर परामर्श लें।`,
+      guidance: `मैं आपके लक्षणों या बात को पूरी तरह समझ नहीं पाया ("${symptomText.slice(0, 40)}..."). मैं एक स्वास्थ्य सहायक हूँ, कृपया मुझे सही और स्पष्ट स्वास्थ्य जानकारी (लक्षण) दें। यदि आपकी स्थिति गंभीर है तो तुरंत डॉक्टर से मिलें।`,
       urgency: "Low",
-      suggestedAction: "घरेलू आराम व निगरानी रखें; यदि लक्षण बढ़ें तो नज़दीकी क्लिनिक जाएं",
+      suggestedAction: "कृपया सही स्वास्थ्य जानकारी दें",
       disclaimer: "यह AI स्वास्थ्य सलाह है और वास्तविक डॉक्टर की जगह नहीं ले सकती। किसी प्रमाणित चिकित्सक से परामर्श लें।"
     };
   }
 
   return {
-    guidance: `For your symptoms regarding "${symptomText.slice(0, 40)}", ensure you get adequate rest, stay hydrated with clean water, and eat a simple, light diet. Monitor how you feel over the next 24 hours. If your discomfort increases or does not improve, consult a medical professional.`,
+    guidance: `I could not clearly understand your input ("${symptomText.slice(0, 40)}..."). I am a health assistant; please provide correct and clear medical data or symptoms. If this is a real medical issue, please consult a clinic.`,
     urgency: "Low",
-    suggestedAction: "Rest, monitor symptoms, and visit your local health clinic if symptoms persist",
+    suggestedAction: "Please provide correct health data",
     disclaimer: "This is AI-generated educational guidance and is NOT a substitute for professional medical diagnosis or treatment."
   };
 }
@@ -308,7 +329,10 @@ router.post('/', async (req, res) => {
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
-  const isKeyConfigured = apiKey && apiKey !== 'your_gemini_api_key_placeholder' && apiKey.trim().length > 10;
+  const isKeyConfigured = apiKey && 
+    apiKey !== 'your_gemini_api_key_placeholder' && 
+    apiKey !== 'your_gemini_api_key_here' && 
+    apiKey.trim().length > 10;
 
   if (!isKeyConfigured) {
     // Return rich clinical triage fallback
@@ -323,46 +347,32 @@ router.post('/', async (req, res) => {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ 
       model: 'gemini-1.5-flash',
+      systemInstruction: 'You are SahayakAI, a cautious, compassionate health triage assistant designed specifically for elderly, rural, and low-literacy users in India.\n\nSTRICT CLINICAL SAFETY RULES:\n1. If the user only enters a casual greeting, reply naturally and politely ask for their symptoms.\n2. GIBBERISH/NON-MEDICAL: If the user texts meaningless words, random sentences, or non-medical data, politely tell them that you are a health assistant and ask them to "give correct data" or clear symptoms.\n3. ACT AS A CAUTIOUS TRIAGE ASSISTANT: Assess urgency and provide safe preliminary guidance, NOT practice medicine.\n4. NEVER GIVE A DEFINITE DIAGNOSIS: Never say "You have X". Describe general possibilities.\n5. ALWAYS RECOMMEND PROFESSIONAL CONSULTATION FOR ANYTHING SERIOUS.\n6. GRADE-5 READING LEVEL: Keep sentences very short, warm, and easy to understand.\n7. CONCISE & DYNAMIC: Keep the "guidance" field to 2 to 4 simple sentences.',
       generationConfig: {
-        responseMimeType: "application/json"
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: SchemaType.OBJECT,
+          properties: {
+            guidance: { type: SchemaType.STRING },
+            urgency: { type: SchemaType.STRING, enum: ["Low", "Medium", "High"] },
+            suggestedAction: { type: SchemaType.STRING },
+            disclaimer: { type: SchemaType.STRING }
+          },
+          required: ["guidance", "urgency", "suggestedAction", "disclaimer"]
+        }
       }
     });
 
-    const prompt = `You are SahayakAI, a cautious, compassionate health triage assistant designed specifically for elderly, rural, and low-literacy users in India.
+    const userPrompt = `PATIENT INQUIRY: "${message}"\nREQUESTED LANGUAGE: ${lang === 'hi' ? 'Hindi (हिंदी in simple, clear Devanagari script)' : 'English (very simple words)'}.`;
 
-PATIENT INQUIRY: "${message}"
-REQUESTED LANGUAGE: ${lang === 'hi' ? 'Hindi (हिंदी in simple, clear Devanagari script)' : 'English (very simple words)'}.
-
-STRICT CLINICAL SAFETY RULES:
-1. ACT AS A CAUTIOUS TRIAGE ASSISTANT: Your role is to assess urgency and provide safe preliminary guidance, NOT to practice medicine.
-2. NEVER GIVE A DEFINITE DIAGNOSIS: Never say "You have X" or "This is definitely Y". You may only describe general possibilities (e.g. "This could be related to a cold or seasonal infection").
-3. ALWAYS RECOMMEND PROFESSIONAL CONSULTATION FOR ANYTHING SERIOUS: For medium or high urgency, immediately tell the user to see a doctor or visit the nearest Primary Health Centre (PHC) / hospital. For life-threatening symptoms (chest pain, stroke signs, severe breathing distress), advise calling 108/112 immediately.
-4. GRADE-5 READING LEVEL: Keep sentences very short, warm, and easy to understand. Do NOT use complicated medical jargon. The user may have low literacy or difficulty reading.
-5. CONCISE & DYNAMIC: Keep the "guidance" field to 2 to 4 simple sentences maximum. Tailor it specifically and directly to the patient's exact stated problem.
-
-Return your response strictly in valid JSON with these keys:
-{
-  "guidance": "Short, simple grade-5 level advice in the requested language (no diagnosis).",
-  "urgency": "Low" | "Medium" | "High",
-  "suggestedAction": "One short simple sentence indicating the immediate next step.",
-  "disclaimer": "Clear reminder that this is AI guidance and they must consult a real doctor."
-}`;
-
-    const result = await model.generateContent(prompt);
-    let text = result.response.text().trim();
+    const result = await model.generateContent(userPrompt);
+    const text = result.response.text().trim();
     
-    // Strip markdown formatting if any
-    if (text.startsWith('```json')) {
-      text = text.replace(/^```json/, '').replace(/```$/, '').trim();
-    } else if (text.startsWith('```')) {
-      text = text.replace(/^```/, '').replace(/```$/, '').trim();
-    }
-
     const parsed = JSON.parse(text);
 
     return res.json({
       guidance: parsed.guidance,
-      urgency: (['Low', 'Medium', 'High'].includes(parsed.urgency)) ? parsed.urgency : 'Medium',
+      urgency: parsed.urgency || 'Medium',
       suggestedAction: parsed.suggestedAction || (lang === 'hi' ? 'डॉक्टर से परामर्श लें' : 'Consult a doctor'),
       disclaimer: parsed.disclaimer || (lang === 'hi' ? 'यह AI मार्गदर्शन है, डॉक्टर की सलाह अनिवार्य है।' : 'This is AI triage guidance. Please consult a qualified doctor.'),
       mode: 'gemini_live_ai'

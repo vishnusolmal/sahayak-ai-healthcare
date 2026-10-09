@@ -16,6 +16,11 @@ function MainLayout() {
 
   const t = translations[lang] || translations.en;
 
+  // Update HTML lang attribute for screen readers
+  React.useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
   return (
     <AccessibilityProvider lang={lang}>
       <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans selection:bg-emerald-200">

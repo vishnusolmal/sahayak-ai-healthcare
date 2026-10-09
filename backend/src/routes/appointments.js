@@ -8,15 +8,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DATA_FILE = path.join(__dirname, '../data/appointments.json');
 
-// Helper to read appointments
-function readAppointments() {
+// Helper to read appointments (Async)
+async function readAppointments() {
   try {
     if (!fs.existsSync(DATA_FILE)) {
-      fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
-      fs.writeFileSync(DATA_FILE, '[]', 'utf8');
+      await fs.promises.mkdir(path.dirname(DATA_FILE), { recursive: true });
+      await fs.promises.writeFile(DATA_FILE, '[]', 'utf8');
       return [];
     }
-    const content = fs.readFileSync(DATA_FILE, 'utf8');
+    const content = await fs.promises.readFile(DATA_FILE, 'utf8');
     return JSON.parse(content || '[]');
   } catch (err) {
     console.error('Error reading appointments.json:', err);
@@ -24,11 +24,11 @@ function readAppointments() {
   }
 }
 
-// Helper to write appointments
-function writeAppointments(data) {
+// Helper to write appointments (Async)
+async function writeAppointments(data) {
   try {
-    fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+    await fs.promises.mkdir(path.dirname(DATA_FILE), { recursive: true });
+    await fs.promises.writeFile(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
     return true;
   } catch (err) {
     console.error('Error writing appointments.json:', err);
@@ -37,13 +37,13 @@ function writeAppointments(data) {
 }
 
 // GET /api/appointments - fetch all bookings
-router.get('/', (req, res) => {
-  const appointments = readAppointments();
+router.get('/', async (req, res) => {
+  const appointments = await readAppointments();
   res.json({ appointments, count: appointments.length });
 });
 
 // POST /api/appointments - book a teleconsultation
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { name, phone, symptom, preferredTime, doctorType } = req.body;
 
   if (!name || !symptom) {
@@ -61,9 +61,9 @@ router.post('/', (req, res) => {
     createdAt: new Date().toISOString()
   };
 
-  const existing = readAppointments();
+  const existing = await readAppointments();
   existing.unshift(newAppointment); // prepend latest
-  writeAppointments(existing);
+  await writeAppointments(existing);
 
   res.status(201).json({
     success: true,

@@ -107,6 +107,8 @@ export default function ChatbotPage({ setCurrentView, lang, setLang, t }) {
       (transcript) => {
         setInputText((prev) => (prev ? `${prev} ${transcript}` : transcript));
         setIsListening(false);
+        // Automatically submit the recognized text
+        setTimeout(() => handleSendMessage(transcript), 100);
       },
       (error) => {
         console.warn('Speech recognition status:', error);
@@ -375,7 +377,12 @@ export default function ChatbotPage({ setCurrentView, lang, setLang, t }) {
       </div>
 
       {/* Chat Messages Scroll Container */}
-      <div className="flex-1 overflow-y-auto py-3 space-y-4 pr-1">
+      <div 
+        className="flex-1 overflow-y-auto py-3 space-y-4 pr-1"
+        aria-live="polite"
+        role="log"
+        aria-atomic="false"
+      >
         {messages.map((msg) => {
           const isUser = msg.sender === 'user';
           const isHigh = msg.urgency === 'High';
