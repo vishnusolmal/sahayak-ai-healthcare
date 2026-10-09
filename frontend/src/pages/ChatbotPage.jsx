@@ -243,7 +243,7 @@ export default function ChatbotPage({ setCurrentView, lang, setLang, t }) {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 flex flex-col h-[calc(100vh-140px)]">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 flex flex-col" style={{ minHeight: 'calc(100vh - 160px)' }}>
       
       {/* Top Header & Bilingual Segmented Toggle Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-3 shrink-0">

@@ -17,12 +17,20 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Security Middlewares
-app.use(helmet()); // Sets HTTP security headers
+// crossOriginResourcePolicy: false prevents helmet from blocking cross-origin
+// static assets (fonts, images) loaded on Vercel's CDN edge
+app.use(helmet({ crossOriginResourcePolicy: false }));
+
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : null; // null = allow all (safe for single-domain Vercel monorepo deploy)
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? '*' : ['http://localhost:5173', 'http://127.0.0.1:5173'], // Allow all in production, restrict in dev
+  origin: allowedOrigins || '*',
   methods: ['GET', 'POST'],
 }));
 app.use(express.json({ limit: '5mb' })); // Limit body size to prevent payload DOS
+
 
 // Rate limiting to prevent brute-force and API abuse
 const limiter = rateLimit({

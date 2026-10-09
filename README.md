@@ -3,6 +3,9 @@
 
 SahayakAI is an inclusive, voice-enabled healthcare companion designed to eliminate literacy, language, and sensory barriers to essential healthcare guidance.
 
+🔗 **Live Demo**: [https://sahayak-ai-healthcare.vercel.app](https://sahayak-ai-healthcare.vercel.app)  
+📦 **GitHub**: [https://github.com/vishnusolmal/sahayak-ai-healthcare](https://github.com/vishnusolmal/sahayak-ai-healthcare)
+
 ---
 
 ## 🌟 Key Innovations for Inclusion & Accessibility
@@ -68,6 +71,24 @@ Now open your browser and navigate to:
 
 ---
 
+## ☁️ Production Deployment (Vercel)
+
+This repo is configured for **one-click Vercel deployment** via `vercel.json`:
+
+1. Go to [vercel.com](https://vercel.com) → **New Project** → Import `vishnusolmal/sahayak-ai-healthcare`
+2. Vercel auto-detects `vercel.json` — no build settings to change
+3. Add one **Environment Variable** in Vercel dashboard:
+
+   | Key | Value |
+   |-----|-------|
+   | `GEMINI_API_KEY` | Your key from [aistudio.google.com](https://aistudio.google.com/) |
+
+4. Click **Deploy** 🎉
+
+The backend Express API is deployed as a **serverless function** and the React frontend as a **static site**, both on the same Vercel URL under `/api/*`.
+
+---
+
 ## 🧪 Step-by-Step Feature Testing Guide
 
 | # | Feature | How to Test | Expected Result |
@@ -89,22 +110,31 @@ Now open your browser and navigate to:
 sahayak-ai-healthcare/
 ├── .gitignore               # Strict ignore: node_modules, .env, dist, build (<10MB)
 ├── README.md                # Documentation and evaluation guide
-├── package.json             # Root runner scripts
+├── package.json             # Root runner scripts (postinstall, dev, start)
+├── vercel.json              # Vercel monorepo deployment config
+├── Procfile                 # Heroku/Railway compatibility
 ├── backend/
-│   ├── .env                 # Port & Gemini API key configuration
+│   ├── .env.example         # Environment variable template (safe to commit)
 │   ├── package.json
 │   └── src/
-│       ├── server.js        # Express API server (Port 5000)
-│       └── data/            # JSON data storage
+│       ├── server.js        # Express API server — exports app for Vercel serverless
+│       ├── routes/
+│       │   ├── chat.js      # Gemini AI triage endpoint
+│       │   └── appointments.js  # Teleconsultation booking (file + in-memory)
+│       └── data/            # JSON data storage (local only)
 └── frontend/
+    ├── .env.example         # VITE_API_URL template
     ├── package.json
     ├── vite.config.js       # Vite dev server + /api proxy
     ├── tailwind.config.js   # Accessibility & contrast color tokens
     └── src/
         ├── App.jsx
         ├── index.css        # High-contrast & font-size styles
-        ├── components/      # UI components
-        └── pages/           # Feature pages
+        ├── components/      # Navbar, AccessibilityBar
+        ├── context/         # AccessibilityContext
+        ├── services/        # speechService (Web Speech API)
+        ├── utils/           # translations (EN/HI)
+        └── pages/           # Feature pages (Chat, Medicine, Hospital, SOS, Teleconsult)
 ```
 
 ---

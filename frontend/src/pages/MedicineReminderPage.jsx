@@ -134,6 +134,7 @@ export default function MedicineReminderPage({ setCurrentView, lang, t }) {
     }, 15000);
 
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reminders, activeAlert, lang]);
 
   // Handle adding reminder

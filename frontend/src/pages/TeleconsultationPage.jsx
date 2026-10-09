@@ -35,17 +35,24 @@ export default function TeleconsultationPage({ setCurrentView, lang, t }) {
 
   const recognitionRef = useRef(null);
 
-  // Fetch past bookings on load
+  // Fetch past bookings on load — merges server results with localStorage backup
   useEffect(() => {
     const apiUrl = import.meta.env.VITE_API_URL || '';
+    const localBackup = JSON.parse(localStorage.getItem('sahayak_local_appointments') || '[]');
+
     fetch(`${apiUrl}/api/appointments`)
       .then((res) => res.json())
       .then((data) => {
-        if (data && data.appointments) {
-          setPastBookings(data.appointments);
-        }
+        const serverBookings = (data && data.appointments) ? data.appointments : [];
+        // Merge: prefer server records, append any local-only ones not on server
+        const serverIds = new Set(serverBookings.map((b) => b.id));
+        const localOnly = localBackup.filter((b) => !serverIds.has(b.id));
+        setPastBookings([...serverBookings, ...localOnly]);
       })
-      .catch((err) => console.warn('Could not load appointments:', err));
+      .catch(() => {
+        // Server unavailable — show local backups only
+        setPastBookings(localBackup);
+      });
   }, [confirmedBooking]);
 
   // Voice dictation for symptoms
